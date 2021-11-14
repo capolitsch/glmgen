@@ -93,80 +93,100 @@
 #'
 #' @examples
 #'
-#'  set.seed(1)
-#'
-#'
+#' set.seed(1)
 #' @author Taylor Arnold
 #' @useDynLib glmgen graph_fused_R
 #'
 #' @importFrom  Matrix bandSparse t solve
 #' @export
-fusedGraph = function(y, weights, edges, edgeWeights=NULL,
-                        lambda=NULL, nlambda=20L, lambdaMinRatio=1e-05,
-                        E=NULL, c=NULL,
-                        rho=1, eps=0.01, maxIter=20, beta0=NULL,
-                        method=c("prox","dp"),
-                        verbose=FALSE) {
+fusedGraph <- function(y, weights, edges, edgeWeights = NULL,
+                       lambda = NULL, nlambda = 20L, lambdaMinRatio = 1e-05,
+                       E = NULL, c = NULL,
+                       rho = 1, eps = 0.01, maxIter = 20, beta0 = NULL,
+                       method = c("prox", "dp"),
+                       verbose = FALSE) {
 
   # Create dummy observation weights if needed
-  if (missing(weights))
-    weights = rep(1, length(y))
+  if (missing(weights)) {
+    weights <- rep(1, length(y))
+  }
 
   # Test edges and convert to C format (0 indexed; -1 for holes)
   if (!is.list(edges)) stop("edges must be a list object.")
-  edges = lapply(edges, function(v) as.integer(v - 1))
-  edges = lapply(edges, function(v) {v[is.na(v) | v < 0] = -1; v})
-  okay = sapply(edges, function(v) !any(duplicated(v[v >= 0])) &
-              !any(is.na(match(v, (-1):(length(y)-1)))))
-  if (any(!okay))
-    stop("bad element in edges list: ",
-         paste(which(!okay),collapse=","))
+  edges <- lapply(edges, function(v) as.integer(v - 1))
+  edges <- lapply(edges, function(v) {
+    v[is.na(v) | v < 0] <- -1
+    v
+  })
+  okay <- sapply(edges, function(v) {
+    !any(duplicated(v[v >= 0])) &
+      !any(is.na(match(v, (-1):(length(y) - 1))))
+  })
+  if (any(!okay)) {
+    stop(
+      "bad element in edges list: ",
+      paste(which(!okay), collapse = ",")
+    )
+  }
 
   # Select the method for solving the sub-problems
-  method = match.arg(method)
+  method <- match.arg(method)
   if (!is.null(edgeWeights)) {
-    if (method != "prox")
-    warning("Edge weights currently are not suppored in the",
-            "DP algorithm;\nusing proximal method ('prox') instead")
-    method = "proxW"
+    if (method != "prox") {
+      warning(
+        "Edge weights currently are not suppored in the",
+        "DP algorithm;\nusing proximal method ('prox') instead"
+      )
+    }
+    method <- "proxW"
   }
-  methodType = which(method == c("dp", "prox", "proxW")) - 1L
+  methodType <- which(method == c("dp", "prox", "proxW")) - 1L
 
   # Test/Create edge weights
   if (is.null(edgeWeights)) {
-    edgeWeights = lapply(edges, function(v) rep(1,length(v)))
+    edgeWeights <- lapply(edges, function(v) rep(1, length(v)))
   } else {
     if (length(edgeWeights) != length(edges) ||
-        any(sapply(edges,length) != sapply(edgeWeights,length)))
-      stop("length of edgeWeights and its elements must",
-           "match that of edges.")
+      any(sapply(edges, length) != sapply(edgeWeights, length))) {
+      stop(
+        "length of edgeWeights and its elements must",
+        "match that of edges."
+      )
+    }
   }
 
   # Deal with initialized value of beta0
   if (is.null(beta0)) {
-    beta0 = rep(mean(y, na.rm=TRUE), length(y))
+    beta0 <- rep(mean(y, na.rm = TRUE), length(y))
   } else {
-    beta0 = as.double(beta0)
-    if (length(beta0) != length(y))
+    beta0 <- as.double(beta0)
+    if (length(beta0) != length(y)) {
       stop("beta0 must have the same length as y, if supplied")
+    }
   }
 
   # Extract the constraint Eb=c, if it exists
   if (missing(E)) {
-    E = new("dgTMatrix", i = integer(0), j = integer(0),
-            Dim = c(length(y), 0L), Dimnames = list(NULL, NULL),
-            x = numeric(0), factors = list())
-    E = new("dgTMatrix", i = integer(0), j = integer(0),
-            Dim = c(length(y), length(y)), Dimnames = list(NULL, NULL),
-            x = numeric(0), factors = list())
+    E <- new("dgTMatrix",
+      i = integer(0), j = integer(0),
+      Dim = c(length(y), 0L), Dimnames = list(NULL, NULL),
+      x = numeric(0), factors = list()
+    )
+    E <- new("dgTMatrix",
+      i = integer(0), j = integer(0),
+      Dim = c(length(y), length(y)), Dimnames = list(NULL, NULL),
+      x = numeric(0), factors = list()
+    )
   } else {
-    if (ncol(E) != length(y))
+    if (ncol(E) != length(y)) {
       stop("E must have a column for each element in y.")
-    E = as(E,"dgTMatrix")
+    }
+    E <- as(E, "dgTMatrix")
   }
-  if (missing(c)) c = rep(0, nrow(E))
-  if (nrow(E) != length(c))
+  if (missing(c)) c <- rep(0, nrow(E))
+  if (nrow(E) != length(c)) {
     stop("Number of rows of E must match the length of c!")
+  }
 
   # Calculate an estimate of the lambda values:
   if (is.null(lambda)) {
@@ -183,31 +203,33 @@ fusedGraph = function(y, weights, edges, edgeWeights=NULL,
     # lambda = exp(seq(log(max_lam), log(min_lam), length.out=nlambda))
   }
 
-  output = list(y=y, w=weights, lambda=lambda, dims=dim(y),
-                beta=matrix(NA, ncol=length(lambda), nrow=length(y)))
+  output <- list(
+    y = y, w = weights, lambda = lambda, dims = dim(y),
+    beta = matrix(NA, ncol = length(lambda), nrow = length(y))
+  )
 
   for (i in 1:length(lambda)) {
-    output$beta[,i] = .Call("graph_fused_R",
-                            sY = as.numeric(y),
-                            sW = as.numeric(weights),
-                            sEdge = as.integer(unlist(edges)),
-                            sWedge = as.numeric(unlist(edgeWeights)),
-                            sEdgeLen = as.integer(lapply(edges,length)),
-                            sLambda = as.double(lambda[i]),
-                            sRho = as.double(rho),
-                            sEps = as.double(eps),
-                            sMaxiter = as.integer(maxIter),
-                            sVerbose = as.integer(verbose),
-                            sMethodType = as.integer(methodType),
-                            sE = E,
-                            sC = as.double(c),
-                            sBeta0 = as.double(beta0),
-                            PACKAGE = "glmgen")
+    output$beta[, i] <- .Call("graph_fused_R",
+      sY = as.numeric(y),
+      sW = as.numeric(weights),
+      sEdge = as.integer(unlist(edges)),
+      sWedge = as.numeric(unlist(edgeWeights)),
+      sEdgeLen = as.integer(lapply(edges, length)),
+      sLambda = as.double(lambda[i]),
+      sRho = as.double(rho),
+      sEps = as.double(eps),
+      sMaxiter = as.integer(maxIter),
+      sVerbose = as.integer(verbose),
+      sMethodType = as.integer(methodType),
+      sE = E,
+      sC = as.double(c),
+      sBeta0 = as.double(beta0),
+      PACKAGE = "glmgen"
+    )
   }
 
-  index = which(is.na(y) | is.na(weights))
-  output$beta[index,] = NA
-  class(output) = c("fusedLattice", "glmgen")
+  index <- which(is.na(y) | is.na(weights))
+  output$beta[index, ] <- NA
+  class(output) <- c("fusedLattice", "glmgen")
   output
 }
-

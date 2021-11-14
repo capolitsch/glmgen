@@ -65,91 +65,96 @@
 #' @useDynLib glmgen thin_R tf_R
 #'
 #' @examples
-#'  set.seed(0)
-#'  n = 100
-#'  x = runif(n, min=-2*pi, max=2*pi)
-#'  y = 1.5*sin(x) + sin(2*x) + rnorm(n, sd=0.2)
-#'  out = trendfilter(x, y, k=2)
+#' set.seed(0)
+#' n <- 100
+#' x <- runif(n, min = -2 * pi, max = 2 * pi)
+#' y <- 1.5 * sin(x) + sin(2 * x) + rnorm(n, sd = 0.2)
+#' out <- trendfilter(x, y, k = 2)
 #'
-#'  xx = seq(min(x),max(x),length=100)
-#'  lambda = out$lambda[25]
-#'  yy = predict(out,x.new=xx,lambda=lambda)
-#'  plot(x,y)
-#'  lines(xx,yy,col=2)
-#'
+#' xx <- seq(min(x), max(x), length = 100)
+#' lambda <- out$lambda[25]
+#' yy <- predict(out, x.new = xx, lambda = lambda)
+#' plot(x, y)
+#' lines(xx, yy, col = 2)
 #' @export
-trendfilter = function(x, y, weights, k = 2L,
-                       family = c("gaussian", "logistic", "poisson"),
-                       method = c("admm"),
-                       beta0 = NULL,
-                       lambda, nlambda = 50L, lambda.min.ratio = 1e-5,
-                       thinning = NULL, verbose = F,
-                       control = trendfilter.control.list(x_tol=1e-6*max(IQR(x),diff(range(x))/2))) {
-
-  cl = match.call()
-  family = match.arg(family)
-  method = match.arg(method)
-  family_cd = match(family, c("gaussian", "logistic", "poisson")) - 1L
-  method_cd = match(method, c("admm")) - 1L
+trendfilter <- function(x, y, weights, k = 2L,
+                        family = c("gaussian", "logistic", "poisson"),
+                        method = c("admm"),
+                        beta0 = NULL,
+                        lambda, nlambda = 50L, lambda.min.ratio = 1e-5,
+                        thinning = NULL, verbose = F,
+                        control = trendfilter.control.list(x_tol = 1e-6 * max(IQR(x), diff(range(x)) / 2))) {
+  cl <- match.call()
+  family <- match.arg(family)
+  method <- match.arg(method)
+  family_cd <- match(family, c("gaussian", "logistic", "poisson")) - 1L
+  method_cd <- match(method, c("admm")) - 1L
 
   if (missing(x) || is.null(x)) stop("x must be passed.")
-  if (missing(y) || is.null(y)) { y = x; x = 1L:length(y) }
-  else if (length(x) != length(y)) stop("x and y must have the same length.")
-  n = length(y)
-  ord = order(x)
-  y = y[ord]
-  x = x[ord]
+  if (missing(y) || is.null(y)) {
+    y <- x
+    x <- 1L:length(y)
+  } else if (length(x) != length(y)) stop("x and y must have the same length.")
+  n <- length(y)
+  ord <- order(x)
+  y <- y[ord]
+  x <- x[ord]
 
-  if (family_cd == 1L & !all(y %in% c(0,1)))
+  if (family_cd == 1L & !all(y %in% c(0, 1))) {
     warning("Logistic family should have all 0/1 responses.")
-  if (family_cd == 2L & (any(round(y) != y) | any(y < 0)))
+  }
+  if (family_cd == 2L & (any(round(y) != y) | any(y < 0))) {
     warning("Poisson family requires non-negative integer responses.")
+  }
 
-  if (missing(weights)) weights = rep(1L,length(y))
-  if (any(weights==0)) stop("Cannot pass zero weights.")
-  weights = weights[ord]
+  if (missing(weights)) weights <- rep(1L, length(y))
+  if (any(weights == 0)) stop("Cannot pass zero weights.")
+  weights <- weights[ord]
 
   if (is.na(family_cd)) stop("family argument must be one of 'gaussian', 'logistic', or 'poisson'.")
   if (k < 0 || k != floor(k)) stop("k must be a nonnegative integer.")
-  if (n < k+2) stop("y must have length >= k+2 for kth order trend filtering.")
+  if (n < k + 2) stop("y must have length >= k+2 for kth order trend filtering.")
   if (k >= 3) warning("Large k leads to generally worse conditioning; k=0,1,2 are the most stable choices.")
 
-  mindx = min(diff(x))
+  mindx <- min(diff(x))
   if (!is.null(thinning) && !thinning && mindx == 0) {
     stop("Cannot pass duplicate x values; use observation weights, or use thinning=TRUE.")
   }
 
-  # If the minimum difference between x points is < 1e-6 times
-  # the interquartile range, then apply thinning, unless they
-  # explicitly tell us not to
+  # If the minimum difference between x points is < 1e-6 times the interquartile
+  # range, then apply thinning, unless they explicitly tell us not to
   if (mindx <= control$x_tol) {
     if (!is.null(thinning) && !thinning) {
-      warning("The x values are ill-conditioned. Consider thinning. \nSee ?trendfilter for more info.")
-    }
-    else {	
-      z = .Call("thin_R",
+      warning(
+        paste("The x values are ill-conditioned. Consider thinning. \nSee",
+              "?trendfilter for more info.")
+        )
+    } else {
+      z <- .Call("thin_R",
         sX = as.double(x),
         sY = as.double(y),
         sW = as.double(weights),
         sN = length(y),
         sK = as.integer(k),
         sControl = control,
-        PACKAGE = "glmgen")
-      x = z$x
-      y = z$y
-      weights = z$w
-      n = z$n
-      
+        PACKAGE = "glmgen"
+      )
+      x <- z$x
+      y <- z$y
+      weights <- z$w
+      n <- z$n
+
       if (!is.null(beta0)) {
-        z = .Call("thin_R",
+        z <- .Call("thin_R",
           sX = as.double(x),
           sY = as.double(beta0),
           sW = as.double(weights),
           sN = length(y),
           sK = as.integer(k),
           sControl = control,
-          PACKAGE = "glmgen")
-        beta0 = z$y
+          PACKAGE = "glmgen"
+        )
+        beta0 <- z$y
       }
     }
   }
@@ -157,21 +162,26 @@ trendfilter = function(x, y, weights, k = 2L,
   if (missing(lambda)) {
     if (nlambda < 1L || nlambda != floor(nlambda)) stop("nlambda must be a positive integer.")
     if (lambda.min.ratio <= 0 || lambda.min.ratio >= 1) stop("lamba.min.ratio must be between 0 and 1.")
-    lambda = rep(0, nlambda)
-    lambda_flag = FALSE
+    lambda <- rep(0, nlambda)
+    lambda_flag <- FALSE
   } else {
     if (length(lambda) == 0L) stop("Must specify at least one lambda value.")
     if (min(lambda) < 0L) stop("All specified lambda values must be nonnegative.")
-    if (any(order(lambda) != length(lambda):1L) & any(order(lambda) != 1L:length(lambda))) # ????
+    if (any(order(lambda) != length(lambda):1L) & any(order(lambda) != 1L:length(lambda))) { # ????
       warning("User-supplied lambda values should given in decending order for warm starts.")
-    nlambda = length(lambda)
-    lambda_flag = TRUE
+    }
+    nlambda <- length(lambda)
+    lambda_flag <- TRUE
   }
-  if (!is.list(control) || (is.null(names(control)) && length(control) != 0L))
+  if (!is.list(control) || (is.null(names(control)) && length(control) != 0L)) {
     stop("control must be a named list.")
-  control = lapply(control, function(v) ifelse(is.numeric(v),
-                   as.double(v[[1]]), stop("Elements of control must be numeric.")))
-  z = .Call("tf_R",
+  }
+  control <- lapply(control, function(v) {
+    ifelse(is.numeric(v),
+      as.double(v[[1]]), stop("Elements of control must be numeric.")
+    )
+  })
+  z <- .Call("tf_R",
     sX = as.double(x),
     sY = as.double(y),
     sW = as.double(weights),
@@ -186,19 +196,35 @@ trendfilter = function(x, y, weights, k = 2L,
     sLambdaMinRatio = as.double(lambda.min.ratio),
     sVerbose = as.integer(verbose),
     sControl = control,
-    PACKAGE = "glmgen")
+    PACKAGE = "glmgen"
+  )
 
   if (is.null(z)) stop("Unspecified error in C code.")
-  colnames(z$beta) = as.character(round(z$lambda, 3))
+  colnames(z$beta) <- as.character(round(z$lambda, 3))
 
-  out = structure(list(y = y, x = x, weights = weights, k = as.integer(k),
-    lambda = z$lambda, beta0 = beta0, df = z$df, beta = z$beta, family = family,
-    method = method, n = length(y), p = length(y),
-    m = length(y) - as.integer(k) - 1L, obj = z$obj,
-    status = z$status, iter = z$iter, family=family, call = cl),
-    class = c("trendfilter","glmgen"))
-
-  out
+  structure(
+    list(
+      y = y,
+      x = x,
+      weights = weights,
+      k = as.integer(k),
+      lambda = z$lambda,
+      beta0 = beta0,
+      df = z$df,
+      beta = z$beta,
+      family = family,
+      method = method,
+      n = length(y),
+      p = length(y),
+      m = length(y) - as.integer(k) - 1L,
+      obj = z$obj,
+      status = z$status,
+      iter = z$iter,
+      family = family,
+      call = cl
+    ),
+    class = c("trendfilter", "glmgen")
+  )
 }
 
 #' Control list for tuning trend filtering algorithm
@@ -220,7 +246,7 @@ trendfilter = function(x, y, weights, k = 2L,
 #' @param max_iter_newton
 #'  for non-Gaussian GLM losses, the number of outer iterations used in Newton's method.
 #' @param x_tol
-#'  defines uniqueness or sameness of x's. If we make bins of size x_tol and 
+#'  defines uniqueness or sameness of x's. If we make bins of size x_tol and
 #'  find at least two x's which fall into the same bin, then we thin the data.
 #' @param alpha_ls
 #'  tuning parameter for the line search used in the proximal Newton procedure for
@@ -237,22 +263,22 @@ trendfilter = function(x, y, weights, k = 2L,
 #' @seealso \code{\link{trendfilter}}
 #'
 #' @examples
-#'  set.seed(0)
-#'  n = 100
-#'  x = runif(n, min=-2*pi, max=2*pi)
-#'  y = 1.5*sin(x) + sin(2*x) + rnorm(n, sd=0.2)
-#'  out = trendfilter(x, y, k=2, control=trendfilter.control.list(rho=3))
-#'
+#' set.seed(0)
+#' n <- 100
+#' x <- runif(n, min = -2 * pi, max = 2 * pi)
+#' y <- 1.5 * sin(x) + sin(2 * x) + rnorm(n, sd = 0.2)
+#' out <- trendfilter(x, y, k = 2, control = trendfilter.control.list(rho = 3))
 #' @export
-trendfilter.control.list = function(rho=1, obj_tol=1e-5, obj_tol_newton=obj_tol,
-									max_iter=200L, max_iter_newton=50L, 
-									x_tol=1e-6, alpha_ls=0.5, gamma_ls=0.8,
-									max_iter_ls=30L, tridiag=0) {
-
-  z <- list(rho=rho, obj_tol=obj_tol, obj_tol_newton=obj_tol_newton,
-			max_iter=max_iter, max_iter_newton=max_iter_newton, 
-			x_tol=x_tol, alpha_ls=alpha_ls, gamma_ls=gamma_ls,
-      max_iter_ls=max_iter_ls, tridiag=tridiag)
+trendfilter.control.list <- function(rho = 1, obj_tol = 1e-5, obj_tol_newton = obj_tol,
+                                     max_iter = 200L, max_iter_newton = 50L,
+                                     x_tol = 1e-6, alpha_ls = 0.5, gamma_ls = 0.8,
+                                     max_iter_ls = 30L, tridiag = 0) {
+  z <- list(
+    rho = rho, obj_tol = obj_tol, obj_tol_newton = obj_tol_newton,
+    max_iter = max_iter, max_iter_newton = max_iter_newton,
+    x_tol = x_tol, alpha_ls = alpha_ls, gamma_ls = gamma_ls,
+    max_iter_ls = max_iter_ls, tridiag = tridiag
+  )
   z
 }
 
@@ -289,37 +315,35 @@ trendfilter.control.list = function(rho=1, obj_tol=1e-5, obj_tol_newton=obj_tol,
 #' @seealso \code{\link{trendfilter}}
 #'
 #' @examples
-#'  set.seed(0)
-#'  y <- rnorm(100)
-#'  all.equal(diff(y), tfMultiply(y))
-#'
+#' set.seed(0)
+#' y <- rnorm(100)
+#' all.equal(diff(y), tfMultiply(y))
 #' @export
-tfMultiply = function(b, k=1L, x=NULL, matrix=c("d")) {
-  b = as.numeric(b)
-  if ((k = as.integer(k)[1]) < 0)
+tfMultiply <- function(b, k = 1L, x = NULL, matrix = c("d")) {
+  b <- as.numeric(b)
+  if ((k <- as.integer(k)[1]) < 0) {
     stop("k must be a non-negative integer")
+  }
   if (!is.null(x)) {
-    x = as.numeric(x)
+    x <- as.numeric(x)
     if (length(x) != length(b)) stop("length of x must be same length as b")
-  } else x = as.numeric(1L:length(b))
-  matrix = match.arg(matrix)
-  matrixCode = match(matrix, c("d")) - 1L
-  if (is.na(matrixCode))
+  } else {
+    x <- as.numeric(1L:length(b))
+  }
+  matrix <- match.arg(matrix)
+  matrixCode <- match(matrix, c("d")) - 1L
+  if (is.na(matrixCode)) {
     stop("Invalid matrix selection.")
+  }
 
-  z = .Call("matMultiply_R",
+  z <- .Call("matMultiply_R",
     sB = as.numeric(b),
     sK = as.integer(k),
     x = as.numeric(x),
     sMatrixCode = as.integer(matrixCode),
-    PACKAGE = "glmgen")
+    PACKAGE = "glmgen"
+  )
 
-  if (matrix == "d") z = z[1:(length(z) - k)]
+  if (matrix == "d") z <- z[1:(length(z) - k)]
   z
 }
-
-
-
-
-
-

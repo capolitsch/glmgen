@@ -44,7 +44,7 @@
 #'   array.
 #' @param rho
 #'   a positive number used as a tuning parameter for the ADMM
-#"   procedure.
+# "   procedure.
 #' @param eps
 #'   stopping parameter for the iterative algorithm.
 #' @param maxIter
@@ -97,170 +97,196 @@
 #'
 #' @examples
 #'
-#'  set.seed(1)
+#' set.seed(1)
 #'
-#'  # Over a 20x10 grid
-#'  y = matrix(rnorm(200),20,10)
-#'  y[1:5,1:5] = y[1:5,1:5] + 2
-#'  z = fusedLattice(y, lambda = 3, eps=0.0001, maxIter=100)
-#'  print(matrix(z$beta, 20, 10))
-#'  z = fusedLattice(y, lambda = 0.0001, eps=0.0001, maxIter=100)
-#'  print(round(matrix(z$beta, 20, 10) - y),3)
+#' # Over a 20x10 grid
+#' y <- matrix(rnorm(200), 20, 10)
+#' y[1:5, 1:5] <- y[1:5, 1:5] + 2
+#' z <- fusedLattice(y, lambda = 3, eps = 0.0001, maxIter = 100)
+#' print(matrix(z$beta, 20, 10))
+#' z <- fusedLattice(y, lambda = 0.0001, eps = 0.0001, maxIter = 100)
+#' print(round(matrix(z$beta, 20, 10) - y), 3)
 #'
-#'  # Linear constraint and missing values
-#'  y = matrix(rnorm(8*12),8,12)
-#'  y[1:5,1:5] = y[1:5,1:5] + 2
-#'  y[2,10] = NA
-#'  E = Matrix::Matrix(0,2,length(y))
-#'  E[1,1] = 1
-#'  E[1,2] = -1
-#'  E[2,9] = 1
-#'  E[2,11] = -1
-#'  c = c(0,1)
+#' # Linear constraint and missing values
+#' y <- matrix(rnorm(8 * 12), 8, 12)
+#' y[1:5, 1:5] <- y[1:5, 1:5] + 2
+#' y[2, 10] <- NA
+#' E <- Matrix::Matrix(0, 2, length(y))
+#' E[1, 1] <- 1
+#' E[1, 2] <- -1
+#' E[2, 9] <- 1
+#' E[2, 11] <- -1
+#' c <- c(0, 1)
 #'
-#'  z = fusedLattice(y, lambda = 0.00001, eps=0.0001, maxIter=100,
-#'                   latticeType="square", E=E, c=c)
+#' z <- fusedLattice(y,
+#'   lambda = 0.00001, eps = 0.0001, maxIter = 100,
+#'   latticeType = "square", E = E, c = c
+#' )
 #'
-#'  # 3D Lattice
-#'  y = array(rnorm(3 * 4 * 5),dim=c(5,4,3))
-#'  z = fusedLattice(y, lambda = 30, latticeType="cube")
-#'  array(z$beta, dim=dim(y))
-#'  z = fusedLattice(y, lambda = 0.0001, latticeType="cube")
-#'  array(z$beta, dim=dim(y)) - y
-#'
+#' # 3D Lattice
+#' y <- array(rnorm(3 * 4 * 5), dim = c(5, 4, 3))
+#' z <- fusedLattice(y, lambda = 30, latticeType = "cube")
+#' array(z$beta, dim = dim(y))
+#' z <- fusedLattice(y, lambda = 0.0001, latticeType = "cube")
+#' array(z$beta, dim = dim(y)) - y
 #' @author Taylor Arnold
 #' @useDynLib glmgen lattice_R
 #'
 #' @importFrom  Matrix bandSparse t solve
 #' @export
-fusedLattice = function(y, weights, edgeWeights=NULL, lambda=NULL,
-                        nlambda=20L, lambdaMinRatio=1e-05,
-                        E=NULL, c=NULL,
-                        latticeType=c("square","hex","cube"),
-                        rho=1, eps=0.01, maxIter=20, beta0=NULL,
-                        method=c("prox","dp"),
-                        verbose=FALSE) {
+fusedLattice <- function(y, weights, edgeWeights = NULL, lambda = NULL,
+                         nlambda = 20L, lambdaMinRatio = 1e-05,
+                         E = NULL, c = NULL,
+                         latticeType = c("square", "hex", "cube"),
+                         rho = 1, eps = 0.01, maxIter = 20, beta0 = NULL,
+                         method = c("prox", "dp"),
+                         verbose = FALSE) {
 
   # Extract lattice type and problem dimensions
   if (is.matrix(y) && storage.mode(y) == "double") {
-    latticeType = match.arg(latticeType)
+    latticeType <- match.arg(latticeType)
   } else if (is.array(y) && length(dim(y)) == 3L &&
-              storage.mode(y) == "double") {
-    latticeType = "cube"
-  } else stop("y must be a numeric matrix or 3D array.")
-  latticeType = which(latticeType[[1]] == c("square","hex","cube")) - 1L
+    storage.mode(y) == "double") {
+    latticeType <- "cube"
+  } else {
+    stop("y must be a numeric matrix or 3D array.")
+  }
+  latticeType <- which(latticeType[[1]] == c("square", "hex", "cube")) - 1L
 
   # Create dummy observation weights if needed
-  if (missing(weights))
-    weights = rep(1, length(y))
+  if (missing(weights)) {
+    weights <- rep(1, length(y))
+  }
 
   # Select the method for solving the sub-problems
-  method = match.arg(method)
+  method <- match.arg(method)
   if (!is.null(edgeWeights)) {
-    if (method != "prox")
-    warning("Edge weights currently are not suppored in the",
-            "DP algorithm;\nusing proximal method ('prox') instead")
-    method = "proxW"
+    if (method != "prox") {
+      warning(
+        "Edge weights currently are not suppored in the",
+        "DP algorithm;\nusing proximal method ('prox') instead"
+      )
+    }
+    method <- "proxW"
   }
-  methodType = which(method == c("dp", "prox", "proxW")) - 1L
+  methodType <- which(method == c("dp", "prox", "proxW")) - 1L
 
   # Test/Create edge weights
-  n = nrow(y); m = ncol(y); p = dim(y)[3]
-  if (is.na(p)) p = 1
-  numEdges = (n-1)*m*p + n*(m-1)*p
-  if (latticeType == 1)
-    numEdges = numEdges + (n-1)*(m-1)
-  if (latticeType == 2)
-    numEdges = numEdges + n*m*(p-1)
+  n <- nrow(y)
+  m <- ncol(y)
+  p <- dim(y)[3]
+  if (is.na(p)) p <- 1
+  numEdges <- (n - 1) * m * p + n * (m - 1) * p
+  if (latticeType == 1) {
+    numEdges <- numEdges + (n - 1) * (m - 1)
+  }
+  if (latticeType == 2) {
+    numEdges <- numEdges + n * m * (p - 1)
+  }
   if (is.null(edgeWeights)) {
-    edgeWeights = rep(1.0,numEdges)
+    edgeWeights <- rep(1.0, numEdges)
   } else {
-    if (length(edgeWeights <- as.numeric(edgeWeights)) != numEdges)
-      stop("Expect length(edgeWeights) to be ", numEdges,
-           ", but observed length to be ", length(edgeWeights), ".")
+    if (length(edgeWeights <- as.numeric(edgeWeights)) != numEdges) {
+      stop(
+        "Expect length(edgeWeights) to be ", numEdges,
+        ", but observed length to be ", length(edgeWeights), "."
+      )
+    }
   }
 
   # Deal with missing values; if there are none we can use
   # faster methods in the C code, so flag the non-NA case
-  naflag = TRUE
-  index = which(is.na(y) | is.na(weights))
+  naflag <- TRUE
+  index <- which(is.na(y) | is.na(weights))
   if (length(index) == 0) {
-    naflag = FALSE
+    naflag <- FALSE
   } else {
-    y[index] = NA
-    weights[index] = 0
+    y[index] <- NA
+    weights[index] <- 0
   }
 
   # Deal with initialized value of beta0
   if (is.null(beta0)) {
-    beta0 = rep(mean(y, na.rm=TRUE), length(y))
+    beta0 <- rep(mean(y, na.rm = TRUE), length(y))
   } else {
-    beta0 = as.double(beta0)
-    if (length(beta0) != length(y))
+    beta0 <- as.double(beta0)
+    if (length(beta0) != length(y)) {
       stop("beta0 must have the same length as y, if supplied")
+    }
   }
 
   # Extract the constraint Eb=c, if it exists
   if (missing(E)) {
-    E = new("dgTMatrix", i = integer(0), j = integer(0),
-            Dim = c(length(y), 0L), Dimnames = list(NULL, NULL),
-            x = numeric(0), factors = list())
-    E = new("dgTMatrix", i = integer(0), j = integer(0),
-            Dim = c(length(y), length(y)), Dimnames = list(NULL, NULL),
-            x = numeric(0), factors = list())
+    E <- new("dgTMatrix",
+      i = integer(0), j = integer(0),
+      Dim = c(length(y), 0L), Dimnames = list(NULL, NULL),
+      x = numeric(0), factors = list()
+    )
+    E <- new("dgTMatrix",
+      i = integer(0), j = integer(0),
+      Dim = c(length(y), length(y)), Dimnames = list(NULL, NULL),
+      x = numeric(0), factors = list()
+    )
   } else {
-    if (ncol(E) != length(y))
+    if (ncol(E) != length(y)) {
       stop("E must have a column for each element in y.")
-    E = as(E,"dgTMatrix")
+    }
+    E <- as(E, "dgTMatrix")
   }
-  if (missing(c)) c = rep(0, nrow(E))
-  if (nrow(E) != length(c))
+  if (missing(c)) c <- rep(0, nrow(E))
+  if (nrow(E) != length(c)) {
     stop("Number of rows of E must match the length of c!")
+  }
 
   # Calculate an estimate of the lambda values:
   if (is.null(lambda)) {
     if (latticeType == 0L) {
-      D1 = Matrix::bandSparse(nrow(y), m = nrow(y), c(0, 1),
-             diagonals = list(rep(-1, nrow(y)), rep(1, nrow(y) - 1)))
-      D2 = Matrix::bandSparse(ncol(y), m = ncol(y), c(0, 1),
-             diagonals = list(rep(-1, ncol(y)), rep(1, ncol(y) - 1)))
-      max_lam = max(max(abs(Matrix::solve(Matrix::t(D1)) %*% y),na.rm=TRUE),
-                    max(abs(Matrix::solve(Matrix::t(D1)) %*% y),na.rm=TRUE))
+      D1 <- Matrix::bandSparse(nrow(y),
+        m = nrow(y), c(0, 1),
+        diagonals = list(rep(-1, nrow(y)), rep(1, nrow(y) - 1))
+      )
+      D2 <- Matrix::bandSparse(ncol(y),
+        m = ncol(y), c(0, 1),
+        diagonals = list(rep(-1, ncol(y)), rep(1, ncol(y) - 1))
+      )
+      max_lam <- max(
+        max(abs(Matrix::solve(Matrix::t(D1)) %*% y), na.rm = TRUE),
+        max(abs(Matrix::solve(Matrix::t(D1)) %*% y), na.rm = TRUE)
+      )
     }
 
-    min_lam = max_lam * lambdaMinRatio
-    lambda = exp(seq(log(max_lam), log(min_lam), length.out=nlambda))
+    min_lam <- max_lam * lambdaMinRatio
+    lambda <- exp(seq(log(max_lam), log(min_lam), length.out = nlambda))
   }
 
-  output = list(y=y, w=weights, lambda=lambda, dims=dim(y),
-                latticeType=latticeType,
-                beta=matrix(NA, ncol=length(lambda), nrow=length(y)))
+  output <- list(
+    y = y, w = weights, lambda = lambda, dims = dim(y),
+    latticeType = latticeType,
+    beta = matrix(NA, ncol = length(lambda), nrow = length(y))
+  )
 
   for (i in 1:length(lambda)) {
-    output$beta[,i] = .Call("lattice_R",
-                            sY = y,
-                            sW = weights,
-                            sWedge = edgeWeights,
-                            sLambda = as.double(lambda[i]),
-                            sRho = as.double(rho),
-                            sEps = as.double(eps),
-                            sMaxiter = as.integer(maxIter),
-                            sVerbose = as.integer(verbose),
-                            sNaflag = as.integer(naflag),
-                            sLatticeType = as.integer(latticeType),
-                            sMethodType = as.integer(methodType),
-                            sE = E,
-                            sC = as.double(c),
-                            sBeta0 = as.double(beta0),
-                            PACKAGE = "glmgen")
+    output$beta[, i] <- .Call("lattice_R",
+      sY = y,
+      sW = weights,
+      sWedge = edgeWeights,
+      sLambda = as.double(lambda[i]),
+      sRho = as.double(rho),
+      sEps = as.double(eps),
+      sMaxiter = as.integer(maxIter),
+      sVerbose = as.integer(verbose),
+      sNaflag = as.integer(naflag),
+      sLatticeType = as.integer(latticeType),
+      sMethodType = as.integer(methodType),
+      sE = E,
+      sC = as.double(c),
+      sBeta0 = as.double(beta0),
+      PACKAGE = "glmgen"
+    )
   }
 
-  index = which(is.na(y) | is.na(weights))
-  output$beta[index,] = NA
-  class(output) = c("fusedLattice", "glmgen")
+  index <- which(is.na(y) | is.na(weights))
+  output$beta[index, ] <- NA
+  class(output) <- c("fusedLattice", "glmgen")
   output
 }
-
-
-
-
