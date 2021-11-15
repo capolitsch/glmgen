@@ -1,124 +1,71 @@
 #' Fit a trend filtering model
 #'
-#' Find the trend filtering solution of some degree \code{k} for
-#' an arbitrary set of penalty values \code{lambda}. Can handle
-#' link functions of Gaussian, binomial, and Poisson penalized
-#' loss functions.
-#'
 #' @param x
 #'   vector of observed data locations, or when \code{y} is NULL, vector of
 #'   observed responses.
 #' @param y
-#'   vector of observed reponses. If missing or NULL, the responses are assumed
-#'   to be given through \code{x}, and the locations are assumed to be 1 through
-#'   the length of \code{x}.
+#'   vector of observed reponses. If missing or `NULL`, the responses are assumed
+#'   to be given through `x`, and the locations are assumed to be 1 through
+#'   the length of `x`.
 #' @param weights
 #'   optional vector of sample weights. If missing, the weights will be assumed
 #'   to be constant (unity) across all samples.
 #' @param k
 #'   the polynomial order of the trendfilter fit; a nonnegative integer (orders
 #'   larger than 3 are not recommended). For instance, constant trend filtering
-#'   (i.e., the fused lasso) uses \code{k} equal to 0, linear trend filtering uses
-#'   \code{k} equal to 1, quadratic trend filtering uses \code{k} equal to 2, etc.
-#' @param family
-#'   the family for the link function in the trend filtering estimator. Can be
-#'   either "gaussian", "logistic", or "poisson".
-#' @param lambda
+#'   (i.e., the fused lasso) uses `k` equal to 0, linear trend filtering uses
+#'   `k` equal to 1, quadratic trend filtering uses `k` equal to 2, etc.
+#' @param lambdas
 #'   a sequence of lambda values at which to produce a fit. Can be left blank
 #'   (highly recommended for general use), at which point the algorithm will
 #'   determine appropriate lambda values.
-#' @param nlambda
-#'   if \code{lambda} is missing, this determines the number of lambda values
+#' @param nlambdas
+#'   If `lambdas` is missing, this determines the number of lambda values
 #'   dynamically constructed by the algorithm.
 #' @param lambda.min.ratio
-#'   if \code{lambda} is missing, this determines the ratio between the largest
-#'   and smallest \code{lambda} values. The values are evenly spaced on a log scale,
+#'   if `lambdas` is missing, this determines the ratio between the largest
+#'   and smallest `lambda` values. The values are evenly spaced on a log scale,
 #'   so this ratio should typically be set fairly small.
 #' @param thinning
 #'   logical. If true, then the data are preprocessed so that a smaller, better
-#'   conditioned data set is used for fitting. When set to \code{NULL}, the
+#'   conditioned data set is used for fitting. When set to `NULL`, the
 #'   default, function will auto detect whether thinning should be applied
 #'   (i.e., cases in which the numerical fitting algorithm will struggle to converge).
-#' @param method
-#'   the method used to calculate the fit. Currently only 'admm' is supported.
 #' @param verbose
 #'   logical. Should the function print out intermediate results as it is running.
 #' @param control
-#'   an optional named list of control parameters to pass to the underlying algorithm;
+#'   An optional named list of control parameters to pass to the underlying algorithm;
 #'   see Details for more information. Names not matching any valid parameters
 #'   will be silently ignored.
 #'
-#' @details
-#'   Further algorithmic parameters can be passed by using
-#'   \code{\link{trendfilter.control.list}}.
-#'
-#' @references
-#'   Tibshirani, R. J. (2014), "Adaptive piecewise polynomial estimation
-#'     via trend filtering", Annals of Statistics 42 (1): 285--323.
-#'
-#'   Ramdas, A. and Tibshirani R. J. (2014), "Fast and flexible ADMM algorithms
-#'     for trend filtering", arXiv: 1406.2082.
-#'
-#' @return an object of class 'trendfilter'.
+#' @return An object of class `'trendfilter'`.
 #' @author Taylor Arnold, Aaditya Ramdas, Veeranjaneyulu Sadhanala, Ryan Tibshirani
-#' @seealso \code{\link{trendfilter.control.list}}
+#'
 #' @useDynLib glmgen thin_R tf_R
 #'
-#' @examples
-#' set.seed(0)
-#' n <- 100
-#' x <- runif(n, min = -2 * pi, max = 2 * pi)
-#' y <- 1.5 * sin(x) + sin(2 * x) + rnorm(n, sd = 0.2)
-#' out <- trendfilter(x, y, k = 2)
-#'
-#' xx <- seq(min(x), max(x), length = 100)
-#' lambda <- out$lambda[25]
-#' yy <- predict(out, x.new = xx, lambda = lambda)
-#' plot(x, y)
-#' lines(xx, yy, col = 2)
 #' @export
-trendfilter <- function(x, y, weights, k = 2L,
-                        family = c("gaussian", "logistic", "poisson"),
-                        method = c("admm"),
-                        beta0 = NULL,
-                        lambda, nlambda = 50L, lambda.min.ratio = 1e-5,
-                        thinning = NULL, verbose = F,
+trendfilter <- function(x, 
+                        y, 
+                        weights, 
+                        k = 2L,
+                        lambdas, 
+                        nlambdas = 50L, 
+                        lambda.min.ratio = 1e-5,
+                        thinning = NULL, 
+                        verbose = FALSE,
                         control = trendfilter.control.list(x_tol = 1e-6 * max(IQR(x), diff(range(x)) / 2))) {
   cl <- match.call()
-  family <- match.arg(family)
-  method <- match.arg(method)
-  family_cd <- match(family, c("gaussian", "logistic", "poisson")) - 1L
-  method_cd <- match(method, c("admm")) - 1L
-
-  if (missing(x) || is.null(x)) stop("x must be passed.")
-  if (missing(y) || is.null(y)) {
-    y <- x
-    x <- 1L:length(y)
-  } else if (length(x) != length(y)) stop("x and y must have the same length.")
   n <- length(y)
   ord <- order(x)
   y <- y[ord]
   x <- x[ord]
 
-  if (family_cd == 1L & !all(y %in% c(0, 1))) {
-    warning("Logistic family should have all 0/1 responses.")
-  }
-  if (family_cd == 2L & (any(round(y) != y) | any(y < 0))) {
-    warning("Poisson family requires non-negative integer responses.")
-  }
-
   if (missing(weights)) weights <- rep(1L, length(y))
-  if (any(weights == 0)) stop("Cannot pass zero weights.")
   weights <- weights[ord]
-
-  if (is.na(family_cd)) stop("family argument must be one of 'gaussian', 'logistic', or 'poisson'.")
-  if (k < 0 || k != floor(k)) stop("k must be a nonnegative integer.")
-  if (n < k + 2) stop("y must have length >= k+2 for kth order trend filtering.")
-  if (k >= 3) warning("Large k leads to generally worse conditioning; k=0,1,2 are the most stable choices.")
 
   mindx <- min(diff(x))
   if (!is.null(thinning) && !thinning && mindx == 0) {
-    stop("Cannot pass duplicate x values; use observation weights, or use thinning=TRUE.")
+    stop("Cannot pass duplicate x values; use observation weights, or use `thinning = TRUE`.")
   }
 
   # If the minimum difference between x points is < 1e-6 times the interquartile
@@ -143,207 +90,129 @@ trendfilter <- function(x, y, weights, k = 2L,
       y <- z$y
       weights <- z$w
       n <- z$n
-
-      if (!is.null(beta0)) {
-        z <- .Call("thin_R",
-          sX = as.double(x),
-          sY = as.double(beta0),
-          sW = as.double(weights),
-          sN = length(y),
-          sK = as.integer(k),
-          sControl = control,
-          PACKAGE = "glmgen"
-        )
-        beta0 <- z$y
-      }
     }
   }
 
-  if (missing(lambda)) {
-    if (nlambda < 1L || nlambda != floor(nlambda)) stop("nlambda must be a positive integer.")
-    if (lambda.min.ratio <= 0 || lambda.min.ratio >= 1) stop("lamba.min.ratio must be between 0 and 1.")
-    lambda <- rep(0, nlambda)
+  if (missing(lambdas)) {
+    lambdas <- rep(0, nlambdas)
     lambda_flag <- FALSE
   } else {
-    if (length(lambda) == 0L) stop("Must specify at least one lambda value.")
-    if (min(lambda) < 0L) stop("All specified lambda values must be nonnegative.")
-    if (any(order(lambda) != length(lambda):1L) & any(order(lambda) != 1L:length(lambda))) { # ????
-      warning("User-supplied lambda values should given in decending order for warm starts.")
-    }
-    nlambda <- length(lambda)
+    nlambdas <- length(lambdas)
     lambda_flag <- TRUE
   }
+  
   if (!is.list(control) || (is.null(names(control)) && length(control) != 0L)) {
     stop("control must be a named list.")
   }
+  
   control <- lapply(control, function(v) {
     ifelse(is.numeric(v),
       as.double(v[[1]]), stop("Elements of control must be numeric.")
     )
   })
-  z <- .Call("tf_R",
+  
+  c_out <- .Call("tf_R",
     sX = as.double(x),
     sY = as.double(y),
     sW = as.double(weights),
     sN = length(y),
     sK = as.integer(k),
-    sFamily = as.integer(family_cd),
-    sMethod = as.integer(method_cd),
-    sBeta0 = beta0,
+    sFamily = 0L,
+    sMethod = 0L,
+    sBeta0 = NULL,
     sLamFlag = as.integer(lambda_flag),
-    sLambda = as.double(lambda),
-    sNlambda = as.integer(nlambda),
+    sLambda = as.double(lambdas),
+    sNlambda = as.integer(nlambdas),
     sLambdaMinRatio = as.double(lambda.min.ratio),
     sVerbose = as.integer(verbose),
     sControl = control,
     PACKAGE = "glmgen"
   )
-
-  if (is.null(z)) stop("Unspecified error in C code.")
-  colnames(z$beta) <- as.character(round(z$lambda, 3))
+  
+  colnames(c_out$beta) <- as.character(round(c_out$lambda, 3))
 
   structure(
     list(
-      y = y,
       x = x,
+      y = y,
       weights = weights,
       k = as.integer(k),
-      lambda = z$lambda,
-      beta0 = beta0,
-      df = z$df,
-      beta = z$beta,
-      family = family,
-      method = method,
-      n = length(y),
+      lambdas = c_out$lambda,
+      edfs = c_out$df,
+      beta = c_out$beta,
       p = length(y),
       m = length(y) - as.integer(k) - 1L,
-      obj = z$obj,
-      status = z$status,
-      iter = z$iter,
-      family = family,
+      obj = c_out$obj,
+      status = c_out$status,
+      iter = c_out$iter,
       call = cl
     ),
-    class = c("trendfilter", "glmgen")
+    class = "trendfilter"
   )
 }
 
 #' Control list for tuning trend filtering algorithm
 #'
-#' Constructs the control parameters for the trend filtering
-#' algorithm. Allows the user to customize as many or as
-#' little as desired.
-#'
 #' @param rho
 #'  this is a scaling factor for the augmented Lagrangian parameter in the ADMM
-#'  algorithm. To solve a given trend filtering problem with locations \code{x}
-#'  at a tuning parameter value \code{lambda}, the augmented Lagrangian parameter
-#'  is set to be \code{rho * lambda * ((max(x)-min(x))/n)^k}.
+#'  algorithm. To solve a given trend filtering problem with locations `x`
+#'  at a tuning parameter value `lambdas`, the augmented Lagrangian parameter
+#'  is set to be `rho * lambda * ((max(x)-min(x))/n)^k`.
 #' @param obj_tol
 #'  the tolerance used in the stopping criterion; when the relative change in
 #'  objective values is less than this value, the algorithm terminates.
 #' @param max_iter
-#'  number of ADMM iterations used; ignored for k=0.
-#' @param max_iter_newton
-#'  for non-Gaussian GLM losses, the number of outer iterations used in Newton's method.
+#'  number of ADMM iterations used; ignored for `k = 0`.
 #' @param x_tol
-#'  defines uniqueness or sameness of x's. If we make bins of size x_tol and
+#'  defines uniqueness or sameness of x's. If we make bins of size `x_tol` and
 #'  find at least two x's which fall into the same bin, then we thin the data.
-#' @param alpha_ls
-#'  tuning parameter for the line search used in the proximal Newton procedure for
-#'  non-Gaussian GLM losses.
-#' @param gamma_ls
-#'  tuning parameter for the line search used in the proximal Newton for non-Gaussian
-#'  GLM losses.
-#' @param max_iter_ls
-#'  tuning parameter for the number of line search iterations in the proximal Newton
-#'  procedure for non-Gaussian GLM losses.
 #'
 #' @return a list of parameters.
-#' @author Taylor Arnold, Veeranjaneyulu Sadhanala, Ryan Tibshirani
-#' @seealso \code{\link{trendfilter}}
-#'
-#' @examples
-#' set.seed(0)
-#' n <- 100
-#' x <- runif(n, min = -2 * pi, max = 2 * pi)
-#' y <- 1.5 * sin(x) + sin(2 * x) + rnorm(n, sd = 0.2)
-#' out <- trendfilter(x, y, k = 2, control = trendfilter.control.list(rho = 3))
 #' @export
-trendfilter.control.list <- function(rho = 1, obj_tol = 1e-5, obj_tol_newton = obj_tol,
-                                     max_iter = 200L, max_iter_newton = 50L,
-                                     x_tol = 1e-6, alpha_ls = 0.5, gamma_ls = 0.8,
-                                     max_iter_ls = 30L, tridiag = 0) {
-  z <- list(
-    rho = rho, obj_tol = obj_tol, obj_tol_newton = obj_tol_newton,
-    max_iter = max_iter, max_iter_newton = max_iter_newton,
-    x_tol = x_tol, alpha_ls = alpha_ls, gamma_ls = gamma_ls,
-    max_iter_ls = max_iter_ls, tridiag = tridiag
+trendfilter.control.list <- function(rho = 1, 
+                                     obj_tol = 1e-5, 
+                                     obj_tol_newton = obj_tol,
+                                     max_iter = 200L, 
+                                     max_iter_newton = 50L,
+                                     x_tol = 1e-6, 
+                                     alpha_ls = 0.5, 
+                                     gamma_ls = 0.8,
+                                     max_iter_ls = 30L, 
+                                     tridiag = 0) {
+  list(
+    rho = rho, 
+    obj_tol = obj_tol, 
+    obj_tol_newton = obj_tol_newton,
+    max_iter = max_iter, 
+    max_iter_newton = max_iter_newton,
+    x_tol = x_tol, 
+    alpha_ls = alpha_ls, 
+    gamma_ls = gamma_ls,
+    max_iter_ls = max_iter_ls, 
+    tridiag = tridiag
   )
-  z
 }
 
-#' Multiply a vector by Trendfilter Matricies
+#' Multiply a vector by trendfilter matricies
 #'
-#' Fast algorithms exist for multiplying a vector by
-#' the trendfiltering penalty matrix D and other
-#' related matricies, and are used internally in the
-#' function \code{\link{trendfilter}}. Here we expose
-#' functions for advanced users to
-#'
-#' @param b
-#'  a numeric vector to which the multiplication should
-#'  be supplied
-#' @param k
-#'  a positive integer; the order of the trendfiltering matrix
 #' @param x
-#'  the positions associated with the matrix. If set to NULL,
-#'  these will be automatically set to \code{1:length(b)}
-#' @param matrix
-#'  option for which matrix should be used for multiplication.
-#'  See Details for more information.
+#' @param y
+#'  Numeric vector to which the multiplication should be supplied.
+#' @param k
+#'  Order of the trendfiltering matrix.
 #'
-#' @return a numeric vector with the result of the multiplication
-#' @author Taylor Arnold, Veeranjaneyulu Sadhanala, Ryan Tibshirani
-#' @references
-#'
-#'   Tibshirani, R. J. (2014), "Adaptive piecewise polynomial estimation
-#'     via trend filtering", Annals of Statistics 42 (1): 285--323.
-#'
-#'   Ramdas, A. and Tibshirani R. J. (2014), "Fast and flexible ADMM algorithms
-#'     for trend filtering", arXiv: 1406.2082.
-#'
-#' @seealso \code{\link{trendfilter}}
-#'
-#' @examples
-#' set.seed(0)
-#' y <- rnorm(100)
-#' all.equal(diff(y), tfMultiply(y))
+#' @return A numeric vector with the result of the multiplication.
+#' @seealso [trendfilter()]
 #' @export
-tfMultiply <- function(b, k = 1L, x = NULL, matrix = c("d")) {
-  b <- as.numeric(b)
-  if ((k <- as.integer(k)[1]) < 0) {
-    stop("k must be a non-negative integer")
-  }
-  if (!is.null(x)) {
-    x <- as.numeric(x)
-    if (length(x) != length(b)) stop("length of x must be same length as b")
-  } else {
-    x <- as.numeric(1L:length(b))
-  }
-  matrix <- match.arg(matrix)
-  matrixCode <- match(matrix, c("d")) - 1L
-  if (is.na(matrixCode)) {
-    stop("Invalid matrix selection.")
-  }
+tfMultiply <- function(x, y, k = 2L) {
 
   z <- .Call("matMultiply_R",
-    sB = as.numeric(b),
-    sK = as.integer(k),
     x = as.numeric(x),
-    sMatrixCode = as.integer(matrixCode),
+    sB = as.numeric(y),
+    sK = as.integer(k),
+    sMatrixCode = 0L,
     PACKAGE = "glmgen"
   )
 
-  if (matrix == "d") z <- z[1:(length(z) - k)]
-  z
+  z[1:(length(z) - k)]
 }
