@@ -15,20 +15,11 @@
 #    coefficient should be rounded to zero.
 #'
 #' @export
-predict.trendfilter <- function(obj, type = c("link", "response"),
-                                lambdas = NULL, x.new = NULL, zero_tol = 1e-6) {
-  type <- match.arg(type)
-  if (is.null(x.new)) {
-    x.new <- obj$x
-  }
-
-  if (type == "link") {
-    family_cd <- 0L
-  } else {
-    family_cd <- match(obj$family, c("gaussian", "logistic", "poisson")) - 1L
-  }
-
+predict.trendfilter <- function(obj, lambdas = NULL, x.new = NULL, zero_tol = 1e-6) {
+  
+  if (is.null(x.new)) x.new <- obj$x
   if (is.null(lambdas)) lambdas <- obj$lambdas
+  
   co <- coef(object, lambdas)
 
   z <- .Call("tf_predict_R",
@@ -39,7 +30,7 @@ predict.trendfilter <- function(obj, type = c("link", "response"),
     sX0 = as.double(x.new),
     sN0 = length(x.new),
     sNLambda = length(lambdas),
-    sFamily = family_cd,
+    sFamily = 0L,
     sZeroTol = as.double(zero_tol),
     PACKAGE = "glmgen"
   )
@@ -94,7 +85,7 @@ coef.trendfilter <- function(obj, lambdas = NULL) {
     p * t(betas[, bhi, drop = FALSE]))
   colnames(beta) <- as.character(round(lambdas, 3))
 
-  return(beta[, order(o), drop = FALSE])
+  beta[, order(o), drop = FALSE]
 }
 
 
