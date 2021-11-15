@@ -16,10 +16,9 @@
 #'
 #' @export
 predict.trendfilter <- function(obj, lambdas = NULL, x.new = NULL, zero_tol = 1e-6) {
-  
   if (is.null(x.new)) x.new <- obj$x
   if (is.null(lambdas)) lambdas <- obj$lambdas
-  
+
   co <- coef(object, lambdas)
 
   z <- .Call("tf_predict_R",

@@ -2,48 +2,23 @@
 % Please edit documentation in R/trendfilter.R
 \name{tfMultiply}
 \alias{tfMultiply}
-\title{Multiply a vector by Trendfilter Matricies}
+\title{Multiply a vector by trendfilter matricies}
 \usage{
-tfMultiply(b, k = 1L, x = NULL, matrix = c("d"))
+tfMultiply(x, y, k = 2L)
 }
 \arguments{
-\item{b}{a numeric vector to which the multiplication should
-be supplied}
+\item{x}{Vector of observed inputs}
 
-\item{k}{a positive integer; the order of the trendfiltering matrix}
+\item{y}{Numeric vector to which the multiplication should be supplied.}
 
-\item{x}{the positions associated with the matrix. If set to NULL,
-these will be automatically set to \code{1:length(b)}}
-
-\item{matrix}{option for which matrix should be used for multiplication.
-See Details for more information.}
+\item{k}{Order of the trendfiltering matrix.}
 }
 \value{
-a numeric vector with the result of the multiplication
+A numeric vector with the result of the multiplication.
 }
 \description{
-Fast algorithms exist for multiplying a vector by
-the trendfiltering penalty matrix D and other
-related matricies, and are used internally in the
-function \code{\link{trendfilter}}. Here we expose
-functions for advanced users to
-}
-\examples{
- set.seed(0)
- y <- rnorm(100)
- all.equal(diff(y), tfMultiply(y))
-
-}
-\references{
-Tibshirani, R. J. (2014), "Adaptive piecewise polynomial estimation
-    via trend filtering", Annals of Statistics 42 (1): 285--323.
-
-  Ramdas, A. and Tibshirani R. J. (2014), "Fast and flexible ADMM algorithms
-    for trend filtering", arXiv: 1406.2082.
+Multiply a vector by trendfilter matricies
 }
 \seealso{
-\code{\link{trendfilter}}
-}
-\author{
-Taylor Arnold, Veeranjaneyulu Sadhanala, Ryan Tibshirani
+\code{\link[=trendfilter]{trendfilter()}}
 }

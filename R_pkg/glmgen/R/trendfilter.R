@@ -44,14 +44,14 @@
 #' @useDynLib glmgen thin_R tf_R
 #'
 #' @export
-trendfilter <- function(x, 
-                        y, 
-                        weights, 
+trendfilter <- function(x,
+                        y,
+                        weights,
                         k = 2L,
-                        lambdas, 
-                        nlambdas = 50L, 
+                        lambdas,
+                        nlambdas = 50L,
                         lambda.min.ratio = 1e-5,
-                        thinning = NULL, 
+                        thinning = NULL,
                         verbose = FALSE,
                         control = trendfilter.control.list(x_tol = 1e-6 * max(IQR(x), diff(range(x)) / 2))) {
   cl <- match.call()
@@ -73,9 +73,11 @@ trendfilter <- function(x,
   if (mindx <= control$x_tol) {
     if (!is.null(thinning) && !thinning) {
       warning(
-        paste("The x values are ill-conditioned. Consider thinning. \nSee",
-              "?trendfilter for more info.")
+        paste(
+          "The x values are ill-conditioned. Consider thinning. \nSee",
+          "?trendfilter for more info."
         )
+      )
     } else {
       z <- .Call("thin_R",
         sX = as.double(x),
@@ -100,17 +102,17 @@ trendfilter <- function(x,
     nlambdas <- length(lambdas)
     lambda_flag <- TRUE
   }
-  
+
   if (!is.list(control) || (is.null(names(control)) && length(control) != 0L)) {
     stop("control must be a named list.")
   }
-  
+
   control <- lapply(control, function(v) {
     ifelse(is.numeric(v),
       as.double(v[[1]]), stop("Elements of control must be numeric.")
     )
   })
-  
+
   c_out <- .Call("tf_R",
     sX = as.double(x),
     sY = as.double(y),
@@ -128,7 +130,7 @@ trendfilter <- function(x,
     sControl = control,
     PACKAGE = "glmgen"
   )
-  
+
   colnames(c_out$beta) <- as.character(round(c_out$lambda, 3))
 
   structure(
@@ -169,26 +171,26 @@ trendfilter <- function(x,
 #'
 #' @return a list of parameters.
 #' @export
-trendfilter.control.list <- function(rho = 1, 
-                                     obj_tol = 1e-5, 
+trendfilter.control.list <- function(rho = 1,
+                                     obj_tol = 1e-5,
                                      obj_tol_newton = obj_tol,
-                                     max_iter = 200L, 
+                                     max_iter = 200L,
                                      max_iter_newton = 50L,
-                                     x_tol = 1e-6, 
-                                     alpha_ls = 0.5, 
+                                     x_tol = 1e-6,
+                                     alpha_ls = 0.5,
                                      gamma_ls = 0.8,
-                                     max_iter_ls = 30L, 
+                                     max_iter_ls = 30L,
                                      tridiag = 0) {
   list(
-    rho = rho, 
-    obj_tol = obj_tol, 
+    rho = rho,
+    obj_tol = obj_tol,
     obj_tol_newton = obj_tol_newton,
-    max_iter = max_iter, 
+    max_iter = max_iter,
     max_iter_newton = max_iter_newton,
-    x_tol = x_tol, 
-    alpha_ls = alpha_ls, 
+    x_tol = x_tol,
+    alpha_ls = alpha_ls,
     gamma_ls = gamma_ls,
-    max_iter_ls = max_iter_ls, 
+    max_iter_ls = max_iter_ls,
     tridiag = tridiag
   )
 }
@@ -196,16 +198,16 @@ trendfilter.control.list <- function(rho = 1,
 #' Multiply a vector by trendfilter matricies
 #'
 #' @param x
+#'   Vector of observed inputs
 #' @param y
-#'  Numeric vector to which the multiplication should be supplied.
+#'   Numeric vector to which the multiplication should be supplied.
 #' @param k
-#'  Order of the trendfiltering matrix.
+#'   Order of the trendfiltering matrix.
 #'
 #' @return A numeric vector with the result of the multiplication.
 #' @seealso [trendfilter()]
 #' @export
 tfMultiply <- function(x, y, k = 2L) {
-
   z <- .Call("matMultiply_R",
     x = as.numeric(x),
     sB = as.numeric(y),

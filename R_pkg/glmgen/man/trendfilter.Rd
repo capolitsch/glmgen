@@ -4,17 +4,24 @@
 \alias{trendfilter}
 \title{Fit a trend filtering model}
 \usage{
-trendfilter(x, y, weights, k = 2L, family = c("gaussian", "logistic",
-  "poisson"), method = c("admm"), beta0 = NULL, lambda, nlambda = 50L,
-  lambda.min.ratio = 1e-05, thinning = NULL, verbose = F,
-  control = trendfilter.control.list(x_tol = 1e-06 * max(IQR(x),
-  diff(range(x))/2)))
+trendfilter(
+  x,
+  y,
+  weights,
+  k = 2L,
+  lambdas,
+  nlambdas = 50L,
+  lambda.min.ratio = 1e-05,
+  thinning = NULL,
+  verbose = FALSE,
+  control = trendfilter.control.list(x_tol = 1e-06 * max(IQR(x), diff(range(x))/2))
+)
 }
 \arguments{
 \item{x}{vector of observed data locations, or when \code{y} is NULL, vector of
 observed responses.}
 
-\item{y}{vector of observed reponses. If missing or NULL, the responses are assumed
+\item{y}{vector of observed reponses. If missing or \code{NULL}, the responses are assumed
 to be given through \code{x}, and the locations are assumed to be 1 through
 the length of \code{x}.}
 
@@ -26,19 +33,14 @@ larger than 3 are not recommended). For instance, constant trend filtering
 (i.e., the fused lasso) uses \code{k} equal to 0, linear trend filtering uses
 \code{k} equal to 1, quadratic trend filtering uses \code{k} equal to 2, etc.}
 
-\item{family}{the family for the link function in the trend filtering estimator. Can be
-either "gaussian", "logistic", or "poisson".}
-
-\item{method}{the method used to calculate the fit. Currently only 'admm' is supported.}
-
-\item{lambda}{a sequence of lambda values at which to produce a fit. Can be left blank
+\item{lambdas}{a sequence of lambda values at which to produce a fit. Can be left blank
 (highly recommended for general use), at which point the algorithm will
 determine appropriate lambda values.}
 
-\item{nlambda}{if \code{lambda} is missing, this determines the number of lambda values
+\item{nlambdas}{If \code{lambdas} is missing, this determines the number of lambda values
 dynamically constructed by the algorithm.}
 
-\item{lambda.min.ratio}{if \code{lambda} is missing, this determines the ratio between the largest
+\item{lambda.min.ratio}{if \code{lambdas} is missing, this determines the ratio between the largest
 and smallest \code{lambda} values. The values are evenly spaced on a log scale,
 so this ratio should typically be set fairly small.}
 
@@ -49,46 +51,15 @@ default, function will auto detect whether thinning should be applied
 
 \item{verbose}{logical. Should the function print out intermediate results as it is running.}
 
-\item{control}{an optional named list of control parameters to pass to the underlying algorithm;
+\item{control}{An optional named list of control parameters to pass to the underlying algorithm;
 see Details for more information. Names not matching any valid parameters
 will be silently ignored.}
 }
 \value{
-an object of class 'trendfilter'.
+An object of class \code{'trendfilter'}.
 }
 \description{
-Find the trend filtering solution of some degree \code{k} for
-an arbitrary set of penalty values \code{lambda}. Can handle
-link functions of Gaussian, binomial, and Poisson penalized
-loss functions.
-}
-\details{
-Further algorithmic parameters can be passed by using
-  \code{\link{trendfilter.control.list}}.
-}
-\examples{
- set.seed(0)
- n = 100
- x = runif(n, min=-2*pi, max=2*pi)
- y = 1.5*sin(x) + sin(2*x) + rnorm(n, sd=0.2)
- out = trendfilter(x, y, k=2)
-
- xx = seq(min(x),max(x),length=100)
- lambda = out$lambda[25]
- yy = predict(out,x.new=xx,lambda=lambda)
- plot(x,y)
- lines(xx,yy,col=2)
-
-}
-\references{
-Tibshirani, R. J. (2014), "Adaptive piecewise polynomial estimation
-    via trend filtering", Annals of Statistics 42 (1): 285--323.
-
-  Ramdas, A. and Tibshirani R. J. (2014), "Fast and flexible ADMM algorithms
-    for trend filtering", arXiv: 1406.2082.
-}
-\seealso{
-\code{\link{trendfilter.control.list}}
+Fit a trend filtering model
 }
 \author{
 Taylor Arnold, Aaditya Ramdas, Veeranjaneyulu Sadhanala, Ryan Tibshirani

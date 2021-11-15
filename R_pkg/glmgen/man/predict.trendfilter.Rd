@@ -4,23 +4,20 @@
 \alias{predict.trendfilter}
 \title{Get predictions from a trendfilter object}
 \usage{
-\method{predict}{trendfilter}(object, type = c("link", "response"),
-  lambda = NULL, x.new = NULL, zero_tol = 1e-06, ...)
+\method{predict}{trendfilter}(obj, lambdas = NULL, x.new = NULL, zero_tol = 1e-06)
 }
 \arguments{
-\item{object}{output of trendfilter function}
+\item{obj}{Object of class \code{trendfilter}.}
 
-\item{type}{scale of the predictions}
-
-\item{lambda}{optional vector of lambda values to calculate coefficients
+\item{lambdas}{(Optional) Vector of lambda values to calculate coefficients
 at. If missing, will use break points in the fit.}
 
-\item{x.new}{vector of new x points. Set to NULL (the default) to use the
+\item{x.new}{Vector of new \code{x} points. Set to \code{NULL} (the default) to use the
 original locations.}
 
-\item{zero_tol}{numerical tolerance parameter, for determining whether a}
+\item{zero_tol}{Numerical tolerance parameter, for determining whether a}
 
-\item{...}{optional, currently unused, arguments}
+\item{type}{Scale of the predictions.}
 }
 \description{
 Get predictions from a trendfilter object
