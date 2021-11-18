@@ -18,7 +18,6 @@ Description: Efficient algorithms for generalized lasso problems. Specialized
   trend filtering.
 License: GPL-2 | GPL-3
 BugReports: https://github.com/glmgen/glmgen/issues
-Date: 2021-11-14
 Imports: Matrix
 Suggests: testthat
 Encoding: UTF-8
