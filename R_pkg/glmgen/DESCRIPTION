@@ -3,16 +3,16 @@ Package: glmgen
 Title: Fast algorithms for generalized lasso problems
 Version: 0.0.3
 Authors@R:
-  c(person("Taylor", 
-           "Arnold", 
-           "taylor.arnold@acm.org", 
+  c(person(given = "Taylor", 
+           family = "Arnold", 
+           email = "taylor.arnold@acm.org", 
            role = c("aut", "cre")),
-    person("Veeranjaneyulu", 
-           "Sadhanala", 
-           role = c("aut", "cre")),
-    person("Ryan", 
-           "Tibshirani", 
-           role = c("aut", "cre")))
+    person(given = "Veeranjaneyulu", 
+           family = "Sadhanala", 
+           role = c("aut")),
+    person(given = "Ryan", 
+           family = "Tibshirani", 
+           role = c("aut")))
 Description: Efficient algorithms for generalized lasso problems. Specialized 
   implementations are provided to deal with particular problem classes, such as 
   trend filtering.
