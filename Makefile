@@ -27,7 +27,7 @@ clean:
 
 doc:
 	git checkout gh-pages
-	git rebase master
+	git rebase main
 	cd ${R_DIR}; ${PREFIX} R CMD build glmgen
 	cd ${R_DIR}; ${PREFIX} R CMD CHECK --as-cran glmgen_${R_PKG_VERSION}.tar.gz
 	cd ${R_DIR}; ${PREFIX} mv glmgen.Rcheck/glmgen-manual.pdf ..
@@ -43,4 +43,4 @@ doc:
 	git add html
 	git commit -m "auto commit documentation"
 	git push origin gh-pages
-	git checkout master
+	git checkout main
