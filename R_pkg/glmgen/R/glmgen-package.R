@@ -1,4 +1,3 @@
-#' @keywords internal
-#' @importFrom Rcpp sourceCpp
 #' @useDynLib glmgen
+#' @noRd
 NULL

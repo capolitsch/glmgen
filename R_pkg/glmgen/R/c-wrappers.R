@@ -1,14 +1,7 @@
 #' @useDynLib glmgen tf_R
 #' @noRd
 #' @export
-tf_R_wrapper <- function(x,
-                         y,
-                         weights,
-                         lambdas,
-                         admm_params,
-                         k = 2L) {
-  lambda_min_ratio <- 0.5 * max(lambdas) / min(lambdas)
-
+tf_fit <- function(x, y, weights, lambdas, admm_params, k = 2L) {
   invisible(
     .Call("tf_R",
       sX = x,
@@ -22,7 +15,7 @@ tf_R_wrapper <- function(x,
       sLamFlag = 1L,
       sLambda = lambdas,
       sNlambda = length(lambdas),
-      sLambdaMinRatio = lambda_min_ratio,
+      sLambdaMinRatio = 0.5 * max(lambdas) / min(lambdas),
       sVerbose = 0L,
       sControl = admm_params,
       PACKAGE = "glmgen"
@@ -32,18 +25,11 @@ tf_R_wrapper <- function(x,
 
 
 #' @useDynLib glmgen thin_R
-#' @importFrom tidyr tibble
 #' @noRd
 #' @export
-thin_R_wrapper <- function(x,
-                           y,
-                           weights,
-                           admm_params,
-                           k = 2L) {
-  mindx <- min(diff(x))
-
-  if (mindx <= admm_params$x_tol) {
-    c_thin <- .Call("thin_R",
+tf_thin <- function(x, y, weights, admm_params, k = 2L) {
+  invisible(
+    .Call("thin_R",
       sX = x,
       sY = y,
       sW = weights,
@@ -52,25 +38,42 @@ thin_R_wrapper <- function(x,
       sControl = admm_params,
       PACKAGE = "glmgen"
     )
-
-    return(tibble(x = c_thin$x, y = c_thin$y, weights = c_thin$w))
-  } else {
-    return(tibble(x = x, y = y, weights = weights))
-  }
+  )
 }
 
 
 #' @useDynLib glmgen matMultiply_R
 #' @noRd
 #' @export
-tfMultiply <- function(x, y, k = 2L) {
+tf_multiply <- function(x, y, k = 2L) {
   z <- .Call("matMultiply_R",
-    x = as.numeric(x),
-    sB = as.numeric(y),
-    sK = as.integer(k),
+    x = x,
+    sB = y,
+    sK = k,
     sMatrixCode = 0L,
     PACKAGE = "glmgen"
   )
 
   z[1:(length(z) - k)]
+}
+
+
+#' @useDynLib glmgen tf_predict_R
+#' @noRd
+#' @export
+tf_predict <- function(obj, lambdas, x_eval, coefs, zero_tol = 1e-6) {
+  invisible(
+    .Call("tf_predict_R",
+      sX = obj$x,
+      sBeta = coefs,
+      sN = length(obj$y),
+      sK = obj$k,
+      sX0 = x_eval,
+      sN0 = length(x_eval),
+      sNLambda = length(lambdas),
+      sFamily = 0L,
+      sZeroTol = zero_tol,
+      PACKAGE = "glmgen"
+    )
+  )
 }
