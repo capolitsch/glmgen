@@ -1,21 +1,31 @@
+#' Minimalist R wrappers of key C functions in the `glmgen` package
+#'
+#' These functions are for internal use only in the `trendfiltering` package.
+#' They are kept as minimalist as possible (e.g. no checks on arguments or
+#' filtering/manipulation of the data) in order to streamline computational
+#' speed, particularly in settings wherein repeated calls to the underlying C
+#' code are made (e.g. bootstrapping) and, thus, stripping out all
+#' checks/preprocessing/parameter setting from these C wrappers prevents
+#' unnecessary overhead compounding.
+
 #' @useDynLib glmgen tf_R
 #' @noRd
 #' @export
 tf_fit <- function(x, y, weights, lambdas, admm_params, k = 2L) {
   invisible(
     .Call("tf_R",
-      sX = x,
-      sY = y,
-      sW = weights,
+      sX = as.double(x),
+      sY = as.double(y),
+      sW = as.double(weights),
       sN = length(y),
-      sK = k,
+      sK = as.integer(k),
       sFamily = 0L,
       sMethod = 0L,
       sBeta0 = NULL,
       sLamFlag = 1L,
-      sLambda = lambdas,
+      sLambda = as.double(lambdas),
       sNlambda = length(lambdas),
-      sLambdaMinRatio = 0.5 * max(lambdas) / min(lambdas),
+      sLambdaMinRatio = as.double(0.5 * max(lambdas) / min(lambdas)),
       sVerbose = 0L,
       sControl = admm_params,
       PACKAGE = "glmgen"
@@ -30,13 +40,13 @@ tf_fit <- function(x, y, weights, lambdas, admm_params, k = 2L) {
 tf_thin <- function(x, y, weights, admm_params, k = 2L) {
   invisible(
     .Call("thin_R",
-      sX = x,
-      sY = y,
-      sW = weights,
-      sN = length(y),
-      sK = k,
-      sControl = admm_params,
-      PACKAGE = "glmgen"
+          sX = as.double(x),
+          sY = as.double(y),
+          sW = as.double(weights),
+          sN = length(y),
+          sK = as.integer(k),
+          sControl = admm_params,
+          PACKAGE = "glmgen"
     )
   )
 }
@@ -47,9 +57,9 @@ tf_thin <- function(x, y, weights, admm_params, k = 2L) {
 #' @export
 tf_multiply <- function(x, y, k = 2L) {
   z <- .Call("matMultiply_R",
-    x = x,
-    sB = y,
-    sK = k,
+    x = as.double(x),
+    sB = as.double(y),
+    sK = as.integer(k),
     sMatrixCode = 0L,
     PACKAGE = "glmgen"
   )
@@ -64,15 +74,15 @@ tf_multiply <- function(x, y, k = 2L) {
 tf_predict <- function(obj, lambdas, x_eval, coefs, zero_tol = 1e-6) {
   invisible(
     .Call("tf_predict_R",
-      sX = obj$x,
+      sX = as.double(obj$x),
       sBeta = coefs,
       sN = length(obj$y),
-      sK = obj$k,
-      sX0 = x_eval,
+      sK = as.integer(obj$k),
+      sX0 = as.double(x_eval),
       sN0 = length(x_eval),
       sNLambda = length(lambdas),
       sFamily = 0L,
-      sZeroTol = zero_tol,
+      sZeroTol = as.double(zero_tol),
       PACKAGE = "glmgen"
     )
   )
