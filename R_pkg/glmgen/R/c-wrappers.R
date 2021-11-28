@@ -1,12 +1,7 @@
-#' Minimalist R wrappers of key C functions in the `glmgen` package
+#' Minimalist wrappers of some C functions from the `glmgen` package
 #'
-#' These functions are for internal use only in the `trendfiltering` package.
-#' They are kept as minimalist as possible (e.g. no checks on arguments or
-#' filtering/manipulation of the data) in order to streamline computational
-#' speed, particularly in settings wherein repeated calls to the underlying C
-#' code are made (e.g. bootstrapping) and, thus, stripping out all
-#' checks/preprocessing/parameter setting from these C wrappers prevents
-#' unnecessary overhead compounding.
+#' These wrappers are located within a fork of the `glmgen` package and are for
+#' internal use only in the `trendfiltering` package.
 
 #' @useDynLib glmgen tf_R
 #' @noRd
