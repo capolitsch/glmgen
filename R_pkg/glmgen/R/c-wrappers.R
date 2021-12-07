@@ -4,7 +4,6 @@
 #' internal use only in the `trendfiltering` package.
 
 #' @useDynLib glmgen tf_R
-#' @importFrom rlang %||%
 #' @noRd
 #' @export
 .tf_fit <- function(x,
@@ -14,11 +13,10 @@
                     lambda,
                     admm_params,
                     nlambda = NULL,
-                    lambda_min_ratio = NULL,
+                    lambda_min_ratio = 1e-16,
                     ...) {
-  slambda_flag <- ifelse(is.null(lambda_min_ratio), 1L, 0L)
-  lambda_min_ratio <- lambda_min_ratio %||% (0.5 * max(lambda) / min(lambda))
-  lambda <- ifelse(slambda_flag, lambda, rep(0, nlambda))
+  slambda_flag <- ifelse(is.null(nlambda), 1L, 0L)
+  if (slambda_flag) lambda <- rep(0, nlambda)
 
   invisible(
     .Call("tf_R",
