@@ -88,7 +88,7 @@
                         lambda,
                         x_eval,
                         fitted_values,
-                        zero_tol = 1e-6,
+                        zero_tol = 1e-12,
                         ...) {
   p <- .Call("tf_predict_R",
     sX = as.double(obj$x / obj$x_scale),
