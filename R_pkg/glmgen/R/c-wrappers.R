@@ -92,7 +92,7 @@
                         ...) {
   p <- .Call("tf_predict_R",
     sX = as.double(obj$x / obj$x_scale),
-    sBeta = as.double(fv / obj$y_scale),
+    sBeta = as.double(fitted_values / obj$y_scale),
     sN = length(obj$y),
     sK = as.integer(obj$k),
     sX0 = as.double(x_eval / obj$x_scale),
