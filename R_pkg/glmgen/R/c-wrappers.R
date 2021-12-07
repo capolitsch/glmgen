@@ -90,7 +90,7 @@
                         fitted_values,
                         zero_tol = 1e-6,
                         ...) {
-  .Call("tf_predict_R",
+  p <- .Call("tf_predict_R",
     sX = as.double(obj$x / obj$x_scale),
     sBeta = as.double(fv / obj$y_scale),
     sN = length(obj$y),
@@ -102,4 +102,5 @@
     sZeroTol = as.double(zero_tol),
     PACKAGE = "glmgen"
   )
+  p * obj$y_scale
 }
