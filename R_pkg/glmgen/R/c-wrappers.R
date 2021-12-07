@@ -85,18 +85,16 @@
 #' @noRd
 #' @export
 .tf_predict <- function(obj, lambda, x_eval, fv, zero_tol = 1e-6, ...) {
-  invisible(
-    .Call("tf_predict_R",
-      sX = as.double(obj$x),
-      sBeta = fv,
-      sN = length(obj$y),
-      sK = as.integer(obj$k),
-      sX0 = as.double(x_eval),
-      sN0 = length(x_eval),
-      sNLambda = length(lambda),
-      sFamily = 0L,
-      sZeroTol = as.double(zero_tol),
-      PACKAGE = "glmgen"
-    )
+  .Call("tf_predict_R",
+    sX = as.double(obj$x),
+    sBeta = fv,
+    sN = length(obj$y),
+    sK = as.integer(obj$k),
+    sX0 = as.double(x_eval),
+    sN0 = length(x_eval),
+    sNLambda = length(lambda),
+    sFamily = 0L,
+    sZeroTol = as.double(zero_tol),
+    PACKAGE = "glmgen"
   )
 }
