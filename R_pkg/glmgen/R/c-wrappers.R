@@ -33,13 +33,13 @@
 .tf_thin <- function(x, y, weights, k = 2L, admm_params, ...) {
   invisible(
     .Call("thin_R",
-          sX = as.double(x),
-          sY = as.double(y),
-          sW = as.double(weights),
-          sN = length(y),
-          sK = as.integer(k),
-          sControl = admm_params,
-          PACKAGE = "glmgen"
+      sX = as.double(x),
+      sY = as.double(y),
+      sW = as.double(weights),
+      sN = length(y),
+      sK = as.integer(k),
+      sControl = admm_params,
+      PACKAGE = "glmgen"
     )
   )
 }
