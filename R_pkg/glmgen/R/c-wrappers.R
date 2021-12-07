@@ -5,6 +5,7 @@
 
 #' @useDynLib glmgen tf_R
 #' @noRd
+#' @importFrom rlang %||%
 #' @export
 .tf_fit <- function(x,
                     y,
@@ -15,8 +16,14 @@
                     nlambda = NULL,
                     lambda_min_ratio = 1e-16,
                     ...) {
-  slambda_flag <- ifelse(!is.null(lambda), 1L, 0L)
-  if (!slambda_flag) lambda <- rep(0, nlambda)
+
+  if (is.null(lambda)) {
+    nlambda <- nlambda %||% 250L
+    lambda <- rep(0, nlambda)
+    slambda_flag <- FALSE
+  } else {
+    slambda_flag <- TRUE
+  }
 
   invisible(
     .Call("tf_R",
@@ -27,7 +34,6 @@
       sK = as.integer(k),
       sFamily = 0L,
       sMethod = 0L,
-      sBeta0 = NULL,
       sLamFlag = as.integer(slambda_flag),
       sLambda = as.double(lambda),
       sNlambda = length(lambda),
