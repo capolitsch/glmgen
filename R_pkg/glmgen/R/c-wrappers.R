@@ -19,7 +19,7 @@
 
   if (is.null(lambda)) {
     nlambda <- nlambda %||% 250L
-    lambda <- rep(0, nlambda)
+    lambda <- rep(1L, nlambda)
     slambda_flag <- FALSE
   } else {
     slambda_flag <- TRUE
