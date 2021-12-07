@@ -32,7 +32,7 @@
 #' @useDynLib glmgen thin_R
 #' @noRd
 #' @export
-.tf_thin <- function(x, y, weights, k = 2L, admm_params, ...) {
+.tf_thin <- function(x, y, weights, k, admm_params, ...) {
   invisible(
     .Call("thin_R",
       sX = as.double(x),
@@ -51,7 +51,7 @@
 #' @noRd
 #' @export
 .tf_multiply <- function(x, y, k = 2L, ...) {
-  z <- .Call("matMultiply_R",
+  mult_out <- .Call("matMultiply_R",
     x = as.double(x),
     sB = as.double(y),
     sK = as.integer(k),
@@ -59,18 +59,18 @@
     PACKAGE = "glmgen"
   )
 
-  z[1:(length(z) - k)]
+  mult_out[1:(length(mult_out) - k)]
 }
 
 
 #' @useDynLib glmgen tf_predict_R
 #' @noRd
 #' @export
-.tf_predict <- function(obj, lambda, x_eval, coefs, zero_tol = 1e-6, ...) {
+.tf_predict <- function(obj, lambda, x_eval, fv, zero_tol = 1e-6, ...) {
   invisible(
     .Call("tf_predict_R",
       sX = as.double(obj$x),
-      sBeta = coefs,
+      sBeta = fv,
       sN = length(obj$y),
       sK = as.integer(obj$k),
       sX0 = as.double(x_eval),
