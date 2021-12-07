@@ -4,9 +4,20 @@
 #' internal use only in the `trendfiltering` package.
 
 #' @useDynLib glmgen tf_R
+#' @importFrom rlang %||%
 #' @noRd
 #' @export
-.tf_fit <- function(x, y, weights, k = 2L, lambda, admm_params, ...) {
+.tf_fit <- function(x,
+                    y,
+                    weights,
+                    k = 2L,
+                    lambda,
+                    admm_params,
+                    lambda_min_ratio = NULL,
+                    ...) {
+  slambda_flag <- ifelse(is.null(lambda_min_ratio), 1L, 0L)
+  lambda_min_ratio <- lambda_min_ratio %||% (0.5 * max(lambda) / min(lambda))
+
   invisible(
     .Call("tf_R",
       sX = as.double(x),
@@ -17,10 +28,10 @@
       sFamily = 0L,
       sMethod = 0L,
       sBeta0 = NULL,
-      sLamFlag = 1L,
+      sLamFlag = slambda_flag,
       sLambda = as.double(lambda),
       sNlambda = length(lambda),
-      sLambdaMinRatio = as.double(0.5 * max(lambda) / min(lambda)),
+      sLambdaMinRatio = as.double(lambda_min_ratio),
       sVerbose = 0L,
       sControl = admm_params,
       PACKAGE = "glmgen"
