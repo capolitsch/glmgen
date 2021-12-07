@@ -34,6 +34,7 @@
       sK = as.integer(k),
       sFamily = 0L,
       sMethod = 0L,
+      sBeta0 = NULL,
       sLamFlag = as.integer(slambda_flag),
       sLambda = as.double(lambda),
       sNlambda = length(lambda),
