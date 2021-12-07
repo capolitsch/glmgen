@@ -13,10 +13,12 @@
                     k = 2L,
                     lambda,
                     admm_params,
+                    nlambda = NULL,
                     lambda_min_ratio = NULL,
                     ...) {
   slambda_flag <- ifelse(is.null(lambda_min_ratio), 1L, 0L)
   lambda_min_ratio <- lambda_min_ratio %||% (0.5 * max(lambda) / min(lambda))
+  lambda <- ifelse(slambda_flag, lambda, rep(0, nlambda))
 
   invisible(
     .Call("tf_R",
