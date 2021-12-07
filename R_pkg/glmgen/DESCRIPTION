@@ -1,6 +1,6 @@
 Type: Package
 Package: glmgen
-Title: Fast algorithms for generalized lasso problems
+Title: Fast algorithms for generalized lasso problems (fork for trendfiltering pkg)
 Version: 0.0.3
 Authors@R:
   c(person(given = "Taylor", 
