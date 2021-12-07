@@ -84,10 +84,15 @@
 #' @useDynLib glmgen tf_predict_R
 #' @noRd
 #' @export
-.tf_predict <- function(obj, lambda, x_eval, fv, zero_tol = 1e-6, ...) {
+.tf_predict <- function(obj,
+                        lambda,
+                        x_eval,
+                        fitted_values,
+                        zero_tol = 1e-6,
+                        ...) {
   .Call("tf_predict_R",
     sX = as.double(obj$x),
-    sBeta = fv,
+    sBeta = as.double(fv),
     sN = length(obj$y),
     sK = as.integer(obj$k),
     sX0 = as.double(x_eval),
