@@ -10,13 +10,13 @@
                     y,
                     weights,
                     k = 2L,
-                    lambda,
                     admm_params,
+                    lambda = NULL,
                     nlambda = NULL,
                     lambda_min_ratio = 1e-16,
                     ...) {
-  slambda_flag <- ifelse(is.null(nlambda), 1L, 0L)
-  if (slambda_flag) lambda <- rep(0, nlambda)
+  slambda_flag <- ifelse(!is.null(lambda), 1L, 0L)
+  if (!slambda_flag) lambda <- rep(0, nlambda)
 
   invisible(
     .Call("tf_R",
@@ -28,7 +28,7 @@
       sFamily = 0L,
       sMethod = 0L,
       sBeta0 = NULL,
-      sLamFlag = slambda_flag,
+      sLamFlag = as.integer(slambda_flag),
       sLambda = as.double(lambda),
       sNlambda = length(lambda),
       sLambdaMinRatio = as.double(lambda_min_ratio),
