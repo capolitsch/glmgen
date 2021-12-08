@@ -104,3 +104,27 @@
   )
   p * as.numeric(obj$scale["y"])
 }
+
+
+#' @useDynLib glmgen tf_predict_R
+#' @noRd
+#' @export
+.tf_boot <- function(x,
+                     x_eval,
+                     fitted_values,
+                     k,
+                     zero_tol,
+                     ...) {
+  .Call("tf_predict_R",
+        sX = as.double(x),
+        sBeta = as.double(fitted_values),
+        sN = length(x),
+        sK = as.integer(k),
+        sX0 = as.double(x_eval),
+        sN0 = length(x_eval),
+        sNLambda = 1L,
+        sFamily = 0L,
+        sZeroTol = as.double(zero_tol),
+        PACKAGE = "glmgen"
+  )
+}
