@@ -91,18 +91,18 @@
                         zero_tol,
                         ...) {
   p <- .Call("tf_predict_R",
-    sX = as.double(obj$x / obj$scale["x"]),
-    sBeta = as.double(fitted_values / obj$scale["y"]),
+    sX = as.double(obj$x / obj$scale_xy["x"]),
+    sBeta = as.double(fitted_values / obj$scale_xy["y"]),
     sN = length(obj$y),
     sK = as.integer(obj$k),
-    sX0 = as.double(x_eval / obj$scale["x"]),
+    sX0 = as.double(x_eval / obj$scale_xy["x"]),
     sN0 = length(x_eval),
     sNLambda = length(lambda),
     sFamily = 0L,
     sZeroTol = as.double(zero_tol),
     PACKAGE = "glmgen"
   )
-  p * as.numeric(obj$scale["y"])
+  p * as.numeric(obj$scale_xy["y"])
 }
 
 
